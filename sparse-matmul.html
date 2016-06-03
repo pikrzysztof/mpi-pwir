@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Communication-Avoiding Parallel Sparse-Dense Matrix Multiplication &#x2014; The MPI Programming Assignment</title>
+<!-- 2016-05-23 Mon 08:55 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Krzysztof Rzadca" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/javascript" src="http://orgmode.org/mathjax/MathJax.js"></script>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+    MathJax.Hub.Config({
+        // Only one of the two following lines, depending on user settings
+        // First allows browser-native MathML display, second forces HTML/CSS
+        //  config: ["MMLorHTML.js"], jax: ["input/TeX"],
+            jax: ["input/TeX", "output/HTML-CSS"],
+        extensions: ["tex2jax.js","TeX/AMSmath.js","TeX/AMSsymbols.js",
+                     "TeX/noUndefined.js"],
+        tex2jax: {
+            inlineMath: [ ["\\(","\\)"] ],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"], ["\\begin{displaymath}","\\end{displaymath}"] ],
+            skipTags: ["script","noscript","style","textarea","pre","code"],
+            ignoreClass: "tex2jax_ignore",
+            processEscapes: false,
+            processEnvironments: true,
+            preview: "TeX"
+        },
+        showProcessingMessages: true,
+        displayAlign: "center",
+        displayIndent: "2em",
+
+        "HTML-CSS": {
+             scale: 100,
+             availableFonts: ["STIX","TeX"],
+             preferredFont: "TeX",
+             webFont: "TeX",
+             imageFont: "TeX",
+             showMathMenu: true,
+        },
+        MMLorHTML: {
+             prefer: {
+                 MSIE:    "MML",
+                 Firefox: "MML",
+                 Opera:   "HTML",
+                 other:   "HTML"
+             }
+        }
+    });
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Communication-Avoiding Parallel Sparse-Dense Matrix Multiplication &#x2014; The MPI Programming Assignment</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Introduction</a></li>
+<li><a href="#sec-2">2. Communication-Avoding Sparse-Dense Matrix Multiplication</a></li>
+<li><a href="#sec-3">3. Specific requirements</a></li>
+<li><a href="#sec-4">4. Input and output</a></li>
+<li><a href="#sec-5">5. Solution content</a></li>
+<li><a href="#sec-6">6. Scoring</a></li>
+<li><a href="#sec-7">7. Additional materials</a></li>
+<li><a href="#sec-8">8. FAQ</a></li>
+</ul>
+</div>
+</div>
+<p>
+Due date: 5th June, 23:59.
+</p>
+
+<p>
+Version of this document: 4
+</p>
+
+<p>
+changelog:
+</p>
+<ul class="org-ul">
+<li>4: FAQ, another error in the Koanantakool paper, how matrix A should be sent by the coordinator;
+</li>
+<li>3: FAQ, sample tests, performance guidelines;
+</li>
+<li>2: FAQ, matrices A,B are square; slightly modified template;
+</li>
+</ul>
+
+<p>
+This document last modified: 23/05/2015 9:00
+</p>
+
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+As in a typical supercomputer communication takes orders of magnitude more time than computation, there is a growing new field in high-performance algorithms: communication-avoidance. These algorithms trade communication for redundant computation or increased memory usage.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Communication-Avoding Sparse-Dense Matrix Multiplication</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Your goal is to implement two parallel algorithms for multiplying a sparse matrix A by a dense matrix B: 1.5D Blocked Column A; and 1.5D Blocked Inner ABC - see the paper by Koanantakool et al. 
+The main idea of both algorithms is to replicate (redundantly) the data, and then to do less communication rounds, than if the data were not replicated.
+Both algorithms organize processes into "replication" groups of size c (c is a parameter of the algorithm).
+The Column A algorithm replicates just the sparse matrix A. The Inner ABC algorithm replicates all the matrices: the result C is gathered from the parts stored in the replication group.
+</p>
+
+<p>
+Warning: there is an error in the description of 1.5D Blocked Inner ABC in Koanantakool et al's paper. The paper defines the C's blocks to be computed by process P(j,l) as \(C^{p/c \times p/c}(k,j) = A^{p/c \times 1}(k,:) B^{1 \times p/c} (:,j)\) where \(lq \leq k < (l+1)q\), however, this contradicts the description that follows and the example from Fig 3.b. The correct indexing is: \(k \mod p/c\) such that \(lq +j \leq k < (l+1)q + j\).
+</p>
+
+<p>
+Warning: There is a similar error in the description of Column A: P(j) stores \(A^{1 \times p/c}(:,j \mod p/c)\) (which is consistent with Fig. 2b), and not \(A^{1 \times p/c}(:,j)\) (thanks: Michał Szostek).
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Specific requirements</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Your goal is to implement multiple matrix multiplication, i.e., compute \(C = A ( A ( A ... ( A B ) ) )\). You cannot change the order of multiplications. The number of multiplications is given as a program parameter.
+</p>
+
+<p>
+Your implementation must start from a data distribution for c = 1 (i.e., as if there is no replication). Using a generator we supply, processes generate the dense matrix B in parallel (our generator is stateless, so it might be used in parallel by multiple MPI processes; however, each element of the matrix must be generated exactly once).
+</p>
+
+<p>
+Process 0 loads the sparse matrix A from a CSR file (see bibliography for the description of the format) and then sends it to other processes. Each process should receive only a part of the matrix that it will store for data distribution for c = 1 (the coordinator should not send redundant data).
+</p>
+
+<p>
+Only after this initial data distribution, processes should contact their peers in replication groups and exchange their parts of matrices.
+</p>
+
+<p>
+Your solution must use only MPI. Do not use any other parallel/distributed programming libraries (like cilk, pthreads, or OpenMP). 
+</p>
+
+<p>
+Do not use any libraries for local (inside a process) matrix multiplication.
+</p>
+
+<p>
+Assume that A and B are square matrices.
+</p>
+
+<p>
+Assume that, for performance testing, the number of rows and columns of A is much larger (at least thousands) than the number of MPI processes (at most hundreds). However, you cannot assume that the number of MPI processes divides the number of rows/columns (but you can extend matrices with 0 rows or columns, as long as they do not get printed in the final result).
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Input and output</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Programs will be tested automatically. Please stick to the format below.
+</p>
+
+<p>
+Your program will be run using the following instructions:
+</p>
+
+<p>
+<code>cd xx123456; make clean; make</code>
+</p>
+
+<p>
+<code>mpirun -np NP ./matrixmul -f sparse_matrix_file -s seed_for_dense_matrix -c repl_group_size -e exponent [-g ge_value] [-v] [-i]</code>
+</p>
+
+<p>
+where:
+</p>
+<ul class="org-ul">
+<li>NP is the number of processes (assume that NP is a multiplier of c);
+</li>
+<li><code>sparse_matrix_file</code> is a CSR file storing the sparse matrix A. The first row contains 4 integers: the number of rows, the number of columns, the total number of non-zero elements, and the maximum number of non-zero elements in each row. The following 3 rows specify entries (array A in wikipedia's description); row offsets (array IA); and column indices (array JA).
+</li>
+<li><code>-i</code> toggles the Inner algorithm (otherwise the Column algorithm is used);
+</li>
+<li><code>-v</code> prints the matrix C (the multiplication result) in a row-major order: the first line specifies the number of rows and the number of columns of the result; i+1-th line is the i-th row of the matrix;
+</li>
+<li><code>-c repl_group_size</code> specifies the number of processes in each replication group (i.e., parameter c from Koanantakool et al);
+</li>
+<li><code>-e exponent</code> the number of multiplications to do, e.g., for <code>-e 3</code> your program should compute \(C = A ( A ( A B ) )\)
+</li>
+<li><code>-g ge_value</code> prints the number of elements in C greater than or equal to the ~ge<sub>value</sub>_.
+</li>
+</ul>
+
+<p>
+Do not print anything other than the matrix C (if <code>-v</code> is used) or a single integer (if <code>-g</code> is used) on stdout.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Solution content</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Please send us a single <code>.zip</code> file containing a single directory with your login (<code>ab123456</code>); the directory has at least the following files:
+</p>
+<ul class="org-ul">
+<li><code>densematgen.h</code>: our generator. This file cannot be modified.
+</li>
+<li><code>densematgen.c</code>: our generator. this file cannot be modified. For tests, we might use a different implementation of a generator (but it will be stateless);
+</li>
+<li><code>matrixmul.c</code>: the main file of your solution
+</li>
+<li><code>Makefile</code>
+</li>
+<li><code>report.pdf</code>: a report describing your implementation. Please describe the optimizations you implemented.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Scoring</h2>
+<div class="outline-text-2" id="text-6">
+<ul class="org-ul">
+<li>correct, parallel MPI implementation of the Inner algorithm: 5 points;
+</li>
+<li>correct, parallel MPI implementation of the Column algorithm: 6 points;
+</li>
+<li>report: 3 points (incorrect implementations do not get these points);
+</li>
+<li>performance: 6 points (incorrect implementations do not get these points).
+</li>
+</ul>
+
+<p>
+We will score correctness on our test data; we take into account the floating point errors.
+</p>
+
+<p>
+We will score whether and how your implementation uses advanced MPI operations, like asynchronous messages, collectives, custom datatypes, custom communicators (hint: for communicating inside a replication group).
+</p>
+
+<p>
+If you're late, your score will be reduced by 1 point for every 12 hours (i.e.: if you're late by 2h, we subtract 1 point from your score; if you're late by 25h, we subtract 3 points).
+</p>
+
+<p>
+Due to problems with accessing ICM submission system, this year we are unable to give you access to a supercomputer. To optimize performance, please follow the guidelines given during the lecture, the labs and from Traff et al paper.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7"><span class="section-number-2">7</span> Additional materials</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Please do not use any source codes of matrix multiplication programs. We recommend reading the following documents:
+</p>
+
+<ul class="org-ul">
+<li>P.Koanantakool et al, Communication-Avoiding Parallel Sparse-Dense Matrix-Matrix Multiplication, IPDPS 2016, <a href="http://www.eecs.berkeley.edu/~penpornk/spdm3_ipdps16.pdf">http://www.eecs.berkeley.edu/~penpornk/spdm3_ipdps16.pdf</a>
+</li>
+
+<li>Jesper Larsson Traff, William D. Gropp, and Rajeev Thakur, Self-Consistent MPI Performance Guidelines <a href="http://www-unix.mcs.anl.gov/~thakur/papers/tpds-consistency.pdf">http://www-unix.mcs.anl.gov/~thakur/papers/tpds-consistency.pdf</a>
+</li>
+
+<li>CSR matrix format: <a href="https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29">https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29</a>
+</li>
+
+<li>template <a href="http://mimuw.edu.pl/~krzadca/ab123456.zip">http://mimuw.edu.pl/~krzadca/ab123456.zip</a>
+</li>
+
+<li>some tests <a href="http://mimuw.edu.pl/~krzadca/exported_tests.zip">http://mimuw.edu.pl/~krzadca/exported_tests.zip</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8"><span class="section-number-2">8</span> FAQ</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+(thanks: Jakub Sygnowski, Michał Szostek, Hubert Tarasiuk)
+</p>
+
+<ul class="org-ul">
+<li>What language can I use?
+</li>
+</ul>
+
+<p>
+C or C++.
+</p>
+
+<ul class="org-ul">
+<li>Can I use <a href="https://github.com/google/googletest/tree/master/googletest">https://github.com/google/googletest/tree/master/googletest</a> for testing? Should I include such tests?
+</li>
+</ul>
+
+<p>
+You can use external testing libraries, as long as your makefile will compile on students.mimuw.edu.pl . You can include such tests in your final solution (even if they use pthreads). However, your code can't use pthreads in implementation of the algorithms.
+</p>
+
+<ul class="org-ul">
+<li>Can I modify the template?
+</li>
+</ul>
+
+<p>
+Yes, you can! In particular, if you write in C++, you can write your own main module (and modify Makespan as you neeed).
+</p>
+
+<ul class="org-ul">
+<li>What datatype should I use for computation?
+</li>
+</ul>
+
+<p>
+Use doubles.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Krzysztof Rzadca</p>
+<p class="date">Created: 2016-05-23 Mon 08:55</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2.7b)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
