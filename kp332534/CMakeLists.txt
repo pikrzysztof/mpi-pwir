@@ -20,7 +20,7 @@ find_package (Boost REQUIRED serialization)
 set (COMPILE_FLAGS "-Wall -Wextra -pedantic -std=gnu++11 -O0 -ggdb3 -DDEBUG -Wno-unused-but-set-variable")
 
 
-set (moje Matrix.cpp SparseMatrix.cpp SparseMatrix.hpp)
+set (moje Matrix.cpp SparseMatrix.cpp SparseMatrix.hpp Utils.hpp prettyprint.hpp)
 add_library (moje_biblioteki STATIC ${moje})
 set (GENS densematgen.cpp SparseMatrix.cpp SparseMatrix.hpp Debug.hpp)
 add_library (generatory STATIC ${GENS})

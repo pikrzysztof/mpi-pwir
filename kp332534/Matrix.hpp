@@ -14,16 +14,22 @@
 
 class Matrix {
 private:
+
+
 	friend class boost::serialization::access;
 
 	template<typename Archive>
 	void serialize(Archive &ar, const unsigned version);
 
 protected:
-	size_t ncols, nrows, rows_from, rows_to, cols_from, cols_to, number;
+	size_t cols_from, cols_to, rows_from, rows_to;
+	size_t nrows() const;
+	size_t ncols() const;
+	Matrix(size_t cols_from, size_t cols_to,
+	       size_t rows_from, size_t rows_to);
+
 public:
-	Matrix(size_t cols, size_t rows);
-	Matrix(std::basic_istream<char, std::char_traits<char>> &istream);
+	Matrix(std::istream &istream);
 
 	bool operator<(const Matrix& rhs) const;
 };
@@ -31,8 +37,10 @@ public:
 template<typename Archive>
 void Matrix::serialize(Archive &ar, const unsigned)
 {
-	ar & ncols & nrows & rows_from & rows_to & cols_from & cols_to;
+	ar &  rows_from & rows_to & cols_from & cols_to;
 }
+
+
 
 
 #endif //KP332534PWIR_MATRIX_HPP
