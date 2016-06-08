@@ -85,7 +85,7 @@ std::vector<SparseMatrix> SparseMatrix::rowDivide(size_t num_matrices) const
 	size_t nrows_div = this->nrows() / num_matrices;
 	auto result = std::vector<SparseMatrix>();
 	result.reserve(num_matrices);
-	size_t extra_rows = this->nrows() % nrows_div,
+	size_t extra_rows = this->nrows() % num_matrices,
 		rows_from = 0,
 		rows_to;
 	for (const size_t i : boost::irange(0_z, extra_rows)) {
@@ -200,7 +200,9 @@ void SparseMatrix::print(std::ostream& out) const
 
 SparseMatrix::SparseMatrix(size_t cols_from, size_t cols_to, size_t rows_from, size_t rows_to) :
 	Matrix(cols_from, cols_to, rows_from, rows_to),
-	values(rows_to - rows_from)
+	values(rows_to - rows_from),
+        last_row_check(0),
+        last_col_check(0)
 {
 }
 

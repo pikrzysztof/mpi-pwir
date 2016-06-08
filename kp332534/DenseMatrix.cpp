@@ -61,8 +61,7 @@ void DenseMatrix::mla(const Matrix &a, const Matrix &b)//, double getValOrZero)
 				double tmp = b.getValOrZero(i + a.getCols_from(), col) * a.getValOrZero(row, i);
 //				std::cout<<" mla "<<row + a.getRows_from()<<" "<<col<<" += a["<<row<<", "<<i<<"] * b["<<i + a.getCols_from()
 //				<<", "<<col<<"] = "<<tmp<<"bo a = "<<a.getValOrZero(row, i)<<", b="<<b.getValOrZero(i + a.getCols_from(), col)<<"\n";
-				values[row + a.getRows_from()][col] +=
-					b.getValOrZero(i + a.getCols_from(), col) * a.getValOrZero(row, i);
+				values[row + a.getRows_from()][col] += tmp;
 			}
 		}
 	}
@@ -83,3 +82,66 @@ void DenseMatrix::print(std::ostream& os) const
 		}
 	}
 }
+
+DenseMatrix::DenseMatrix(std::vector<DenseMatrix>& matrices):
+	Matrix(matrices.front().getCols_from(),
+	matrices.back().getCols_to(),
+	matrices.front().getRows_from(),
+	matrices.back().getRows_to()),
+        values(matrices.front().nrows())
+{
+	assert(matrices.size() > 0);
+	assert(std::is_sorted(matrices.begin(), matrices.end()));
+	assert(matrices.front().getRows_from() == matrices.back().getRows_from());
+	assert(matrices.front().getRows_from() == matrices.back().getRows_from());
+	size_t ncols =  matrices.back().getCols_to() - matrices.front().getCols_from();
+	if (matrices.size() == 1){
+		values = matrices.front().values;
+	} else {
+		for (std::vector<double>& vec : this->values) {
+			vec.reserve(ncols);
+		}
+		for (const DenseMatrix& dm : matrices) {
+			for (size_t row : boost::irange(0_z, dm.nrows())) {
+				for (size_t col : boost::irange(0_z, dm.ncols())) {
+					values.at(row).push_back(dm.getValOrZero(row, col));
+				}
+			}
+		}
+	}
+}
+
+std::vector<DenseMatrix> DenseMatrix::colDivide(const size_t num_matrices) const
+{
+	std::vector<DenseMatrix> result;
+	result.reserve(num_matrices);
+	const size_t extra_cols = this->ncols() % num_matrices,
+		ncols_div = this->ncols() / num_matrices;
+	size_t cols_from = this->getCols_from(),
+		cols_to;
+	for (size_t i : boost::irange(0_z, extra_cols)) {
+		(void) i;
+		cols_to = cols_from + ncols_div + 1;
+		result.emplace_back(cols_from, cols_to, this->getRows_from(), this->getRows_to());
+		cols_from = cols_to;
+	}
+	for (size_t i : boost::irange(extra_cols, num_matrices)) {
+		(void) i;
+		cols_to = cols_from + ncols_div;
+		result.emplace_back(cols_from, cols_to, this->getRows_from(), this->getRows_to());
+		cols_from = cols_to;
+	}
+	for (DenseMatrix& dm : result) {
+		for (size_t row : boost::irange(0_z, dm.nrows())) {
+			for (size_t col : boost::irange(0_z, dm.ncols())) {
+				dm.values.at(row).push_back(
+					this->getValOrZero(row,
+					                   col + dm.getCols_from() - this->getCols_from()));
+			}
+		}
+	}
+	return result;
+}
+
+
+

@@ -25,10 +25,11 @@ public:
 	            size_t rows_from,
 	            size_t rows_to);
 	void fillValues(int seed = 0);
-	double getValOrZero(size_t row_idx, size_t col_idx) const override;
+	double getValOrZero(const size_t row_idx, const size_t col_idx) const override;
 	void fillWithZeros();
 	void mla(const Matrix &a, const Matrix &b);
-
+	DenseMatrix(std::vector<DenseMatrix>& matrices);
+	std::vector<DenseMatrix> colDivide(const size_t num_matrices) const;
 };
 
 #endif //KP332534PWIR_DENSEMATRIX_HPP
