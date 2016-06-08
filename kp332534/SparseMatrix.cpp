@@ -15,9 +15,9 @@
 #include "Utils.hpp"
 #include "prettyprint.hpp"
 
-static void guardVector(std::vector<std::pair<size_t, double>>& vec, size_t max_index)
+static void guardVector(std::vector<std::pair<size_t, precision_type>>& vec, size_t max_index)
 {
-	const std::pair<size_t, double> first = std::make_pair(0_z, 0.0),
+	const std::pair<size_t, precision_type> first = std::make_pair(0_z, 0.0),
 		last = std::make_pair(max_index, 0.0);
 	if (vec.size() == 0) {
 		vec.push_back(first);
@@ -58,17 +58,17 @@ SparseMatrix::SparseMatrix(std::istream &is):
 	size_t nnz, max_nnz_per_row;
 	is>>nnz;
 	is>>max_nnz_per_row;
-	std::vector<double> vals;
+	std::vector<precision_type> vals;
 	std::vector<size_t> row_offsets,
 		column_indices;
 	readIntoVector(vals, is, nnz);
 	readIntoVector(row_offsets, is, this->nrows() + 1);
 	readIntoVector(column_indices, is, nnz);
 	this->values.resize(this->nrows());
-	const std::pair<size_t, double> last_col = std::make_pair(this->ncols() - 1_z, 0.0);
+	const std::pair<size_t, precision_type> last_col = std::make_pair(this->ncols() - 1_z, 0.0);
 	for (size_t row : boost::irange(0_z, row_offsets.size() - 1)) {
 		for (size_t j : boost::irange(row_offsets[row], row_offsets[row + 1])) {
-			std::pair<size_t, double> para =
+			std::pair<size_t, precision_type> para =
 				std::make_pair(column_indices.at(j),
 				               vals.at(j));
 			this->values.at(row).push_back(para);
@@ -100,7 +100,7 @@ std::vector<SparseMatrix> SparseMatrix::rowDivide(size_t num_matrices) const
 	}
 	for (const size_t i : boost::irange(extra_rows, num_matrices)) {
 		std::tie(std::ignore, i);
-		rows_to += nrows_div;
+		rows_to = rows_from + nrows_div;
 		result.push_back(SparseMatrix(this->getCols_from(), this->getCols_to(), rows_from, rows_to));
 		for (size_t row : boost::irange(rows_from, rows_to)) {
 			result.back().values[row - rows_from] = this->values[row];
@@ -151,7 +151,7 @@ std::vector<SparseMatrix> SparseMatrix::colDivide(size_t num_matrices) const
 	return result;
 }
 
-double SparseMatrix::getValOrZero(const size_t row_idx, const size_t col_idx) const
+precision_type SparseMatrix::getValOrZero(const size_t row_idx, const size_t col_idx) const
 {
 	assert(row_idx < this->nrows());
 	assert(col_idx < this->ncols());
@@ -161,7 +161,7 @@ double SparseMatrix::getValOrZero(const size_t row_idx, const size_t col_idx) co
 		lcc = 0;
 		lrc = row_idx;
 	}
-	const std::vector<std::pair<size_t, double>> *const row = &(this->values.at(row_idx));
+	const std::vector<std::pair<size_t, precision_type>> *const row = &(this->values.at(row_idx));
 	if (row->at(lcc).first > col_idx) {
 		--lcc;
 	}
@@ -179,7 +179,7 @@ void SparseMatrix::print(std::ostream& out) const
 {
 	for (const size_t row : boost::irange(0_z, this->nrows())) {
 		for (const size_t col : boost::irange(0_z, this->ncols())) {
-			double d = this->getValOrZero(row, col);
+			precision_type d = this->getValOrZero(row, col);
 			if (debug) {
 				if (d == 0.0) {
 					out << "......";
@@ -236,7 +236,7 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 		for (const size_t i : boost::irange(0_z, num_submatrices)) {
 			const size_t nrows = vec.at(i).nrows();
 			for (const size_t row : boost::irange(0_z, nrows)) {
-				for (const std::pair<size_t, double> &para : vec.at(i).values.at(row)) {
+				for (const std::pair<size_t, precision_type> &para : vec.at(i).values.at(row)) {
 					bool wrzuc = false;
 					if (para.second == 0.0) {
 						if ((i == 0 and para.first == 0)
@@ -266,4 +266,10 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 				sm.values.end());
 		}
 	}
+}
+
+const std::vector<std::pair<size_t, precision_type>> &SparseMatrix::getRow(size_t rowId) const
+{
+	assert(rowId < this->nrows());
+	return this->values.at(rowId);
 }

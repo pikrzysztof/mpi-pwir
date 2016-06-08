@@ -31,12 +31,12 @@ int main(int argc, char *argv[]) {
 
 	int option = -1;
 
-	double comm_start = 0,
+	precision_type comm_start = 0,
 		comm_end = 0, comp_start = 0, comp_end = 0;
 	int num_processes = 1;
 	int mpi_rank = 0;
 	int exponent = 1;
-	double ge_element = 0;
+	precision_type ge_element = 0;
 	int count_ge = 0;
 
 	sparse_type sparse = NULL;

@@ -31,7 +31,7 @@ void DenseMatrix::fillValues(int seed)
 	}
 }
 
-double DenseMatrix::getValOrZero(size_t row_idx, size_t col_idx) const
+precision_type DenseMatrix::getValOrZero(size_t row_idx, size_t col_idx) const
 {
 	return this->values[row_idx][col_idx];
 }
@@ -47,20 +47,20 @@ void DenseMatrix::fillWithZeros()
 }
 
 //this = A * B, A is sparse, B is dense
-void DenseMatrix::mla(const Matrix &a, const Matrix &b)//, double getValOrZero)
+void DenseMatrix::mla(const SparseMatrix &a, const Matrix &b)//, precision_type getValOrZero)
 {
 //	jestem w stanie policzyc taki prostokat o kolumnach [b.cols_from, b.cols_to)
 //	i wierszach [a.rows_from, a.rows_to)
 //	przy czym a[wierszA][kolumnaA] * b[wierszB][kolumnaB] idzie do
 //	C[wierszA][kolumnaB]
 
-	for (size_t row : boost::irange(0_z, a.nrows())) {
-		for (size_t col : boost::irange(0_z, b.ncols())) {
-			for (size_t i : boost::irange(0_z, a.ncols())) {
-				size_t wiersz_moj = row + a.getRows_from(),
-					moja_kolumna = col;
-				double tmp = b.getValOrZero(i + a.getCols_from(), col) * a.getValOrZero(row, i);
-				values[wiersz_moj][col] += tmp;
+//TODO: zoptymalizowac odwolania do pamieci
+	for (const size_t rowIdx : boost::irange(0_z, a.nrows())) {
+		const std::vector<std::pair<size_t, precision_type>>& row = a.getRow(rowIdx);
+		std::vector<precision_type>& c_row = this->values[rowIdx + a.getRows_from() - this->getRows_from()];
+		for (const auto& val_a : row) {
+			for (const size_t col : boost::irange(0_z, b.ncols())) {
+				c_row[col] += val_a.second * b.getValOrZero(val_a.first + a.getCols_from(), col);
 			}
 		}
 	}
@@ -97,7 +97,7 @@ DenseMatrix::DenseMatrix(std::vector<DenseMatrix>& matrices):
 	if (matrices.size() == 1){
 		values = matrices.front().values;
 	} else {
-		for (std::vector<double>& vec : this->values) {
+		for (std::vector<precision_type>& vec : this->values) {
 			vec.reserve(ncols);
 		}
 		for (const DenseMatrix& dm : matrices) {

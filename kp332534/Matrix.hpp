@@ -28,7 +28,7 @@ public:
 	size_t nrows() const;
 	size_t ncols() const;
 	Matrix(std::istream &istream);
-	virtual double getValOrZero(const size_t row_idx, const size_t col_idx) const = 0;
+	virtual precision_type getValOrZero(const size_t row_idx, const size_t col_idx) const = 0;
 	bool operator<(const Matrix& rhs) const;
 
 	inline size_t getCols_from() const { return cols_from; }

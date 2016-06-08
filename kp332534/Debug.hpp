@@ -11,6 +11,8 @@ const bool debug = true;
 bool debug = false;
 #endif
 
+typedef double precision_type;
+
 const int precision = 4;
 
 const bool fixed = true;
