@@ -20,23 +20,26 @@ find_package (Boost REQUIRED serialization)
 set (COMPILE_FLAGS "-Wall -Wextra -pedantic -std=gnu++11 -O0 -ggdb3 -DDEBUG -Wno-unused-but-set-variable")
 
 
-set (moje Matrix.cpp SparseMatrix.cpp SparseMatrix.hpp Utils.hpp prettyprint.hpp)
+set (moje
+        Matrix.cpp Matrix.hpp
+        SparseMatrix.cpp SparseMatrix.hpp
+        Utils.hpp prettyprint.hpp
+        DenseMatrix.cpp DenseMatrix.hpp
+        Debug.hpp
+        densematgen.hpp densematgen.cpp)
 add_library (moje_biblioteki STATIC ${moje})
-set (GENS densematgen.cpp SparseMatrix.cpp SparseMatrix.hpp Debug.hpp)
-add_library (generatory STATIC ${GENS})
+
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}")
 # set (CMAKE_LINK_LIBRARY_FLAG "${CMAKE_LINK_LIBRARY_FLAG}")
 
 add_executable(matrixmul matrixmul.cpp)
 add_executable(testowanie test.cpp)
 target_link_libraries(matrixmul
-        generatory
         moje_biblioteki
         /opt/mpich2/lib/libmpich.so
         ${Boost_LIBRARIES})
 
 target_link_libraries(testowanie
-        generatory
         moje_biblioteki
         /opt/mpich2/lib/libmpich.so
         ${Boost_LIBRARIES})

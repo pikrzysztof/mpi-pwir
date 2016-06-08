@@ -11,6 +11,7 @@
 #include <tuple>
 #include <sstream>
 #include <iostream>
+#include <stdlib.h>
 #include "Utils.hpp"
 #include "prettyprint.hpp"
 
@@ -44,11 +45,15 @@ static void readIntoVector(std::vector<T>& v, std::istream& is, const size_t num
 }
 
 SparseMatrix::SparseMatrix() :
-		Matrix(0_z, 0_z, 0_z, 0_z)
+		Matrix(0_z, 0_z, 0_z, 0_z),
+                last_row_check(0_z),
+                last_col_check(0_z)
 { }
 
 SparseMatrix::SparseMatrix(std::istream &is):
-	Matrix(is)
+	Matrix(is),
+	last_row_check(0_z),
+        last_col_check(0_z)
 {
 	size_t nnz, max_nnz_per_row;
 	is>>nnz;
@@ -86,7 +91,7 @@ std::vector<SparseMatrix> SparseMatrix::rowDivide(size_t num_matrices) const
 	for (const size_t i : boost::irange(0_z, extra_rows)) {
 		std::tie(std::ignore, i);
 		rows_to = rows_from + nrows_div + 1;
-		result.push_back(SparseMatrix(this->cols_from, this->cols_to, rows_from, rows_to));
+		result.push_back(SparseMatrix(this->getCols_from(), this->getCols_to(), rows_from, rows_to));
 
 		for (size_t row : boost::irange(rows_from, rows_to)) {
 			result.back().values[row - rows_from] = this->values[row];
@@ -96,7 +101,7 @@ std::vector<SparseMatrix> SparseMatrix::rowDivide(size_t num_matrices) const
 	for (const size_t i : boost::irange(extra_rows, num_matrices)) {
 		std::tie(std::ignore, i);
 		rows_to += nrows_div;
-		result.push_back(SparseMatrix(this->cols_from, this->cols_to, rows_from, rows_to));
+		result.push_back(SparseMatrix(this->getCols_from(), this->getCols_to(), rows_from, rows_to));
 		for (size_t row : boost::irange(rows_from, rows_to)) {
 			result.back().values[row - rows_from] = this->values[row];
 		}
@@ -118,23 +123,23 @@ std::vector<SparseMatrix> SparseMatrix::colDivide(size_t num_matrices) const
 	for (size_t i : boost::irange(0_z, extra_cols)) {
 		std::tie(std::ignore, i);
 		cols_to = cols_from + ncols_div + 1;
-		result.push_back(SparseMatrix(cols_from, cols_to, this->rows_from, this->rows_to));
+		result.push_back(SparseMatrix(cols_from, cols_to, this->getRows_from(), this->getRows_to()));
 		cols_from = cols_to;
 	}
 	for (size_t i : boost::irange(extra_cols, num_matrices)) {
 		std::tie(std::ignore, i);
 		cols_to = cols_from + ncols_div;
-		result.push_back(SparseMatrix(cols_from, cols_to, this->rows_from, this->rows_to));
+		result.push_back(SparseMatrix(cols_from, cols_to, this->getRows_from(), this->getRows_to()));
 		cols_from = cols_to;
 	}
 	for (size_t i : boost::irange(0_z, this->nrows())) {
 		size_t smid = 0_z; //sparseMatrix id
 		for (auto& val : this->values.at(i)) {
-			while (val.first >= result[smid].cols_to) {
+			while (val.first >= result[smid].getCols_to()) {
 				++smid;
 			}
 			result[smid].values[i].
-				push_back(std::make_pair(val.first - result[smid].cols_from,
+				push_back(std::make_pair(val.first - result[smid].getCols_from(),
 				                         val.second));
 		}
 	}
@@ -148,46 +153,49 @@ std::vector<SparseMatrix> SparseMatrix::colDivide(size_t num_matrices) const
 
 double SparseMatrix::getValOrZero(const size_t row_idx, const size_t col_idx) const
 {
-	static size_t last_col_check, last_row_check;
-	if (last_row_check != row_idx) {
-		last_col_check = 0;
-		last_row_check = row_idx;
+	assert(row_idx < this->nrows());
+	assert(col_idx < this->ncols());
+	size_t &lcc = const_cast<size_t &>(this->last_col_check),
+		&lrc = const_cast<size_t &>(this->last_row_check);
+	if (lrc != row_idx) {
+		lcc = 0;
+		lrc = row_idx;
 	}
 	const std::vector<std::pair<size_t, double>> *const row = &(this->values.at(row_idx));
-	while (col_idx > row->at(last_col_check).first) {
-		++last_col_check;
+	if (row->at(lcc).first > col_idx) {
+		--lcc;
 	}
-	if (col_idx == row->at(last_col_check).first) {
-		return row->at(last_col_check).second;
+	while (col_idx > row->at(lcc).first) {
+		++lcc;
+	}
+	if (col_idx == row->at(lcc).first) {
+		return row->at(this->last_col_check).second;
 	} else {
 		return 0.0;
 	}
 }
 
-std::ostream &operator<<(std::ostream& out, SparseMatrix const& sm)
+void SparseMatrix::print(std::ostream& out) const
 {
-	out.precision(4);
-	out<<std::fixed;
-	for (const size_t row : boost::irange(0_z, sm.nrows())) {
-		for (const size_t col : boost::irange(0_z, sm.ncols())) {
+	for (const size_t row : boost::irange(0_z, this->nrows())) {
+		for (const size_t col : boost::irange(0_z, this->ncols())) {
+			double d = this->getValOrZero(row, col);
 			if (debug) {
-				double d = sm.getValOrZero(row, col);
 				if (d == 0.0) {
 					out << "......";
 				} else {
 					out<<d;
 				}
 			} else {
-				out<<sm.getValOrZero(row, col);
+				out<<d;
 			}
-			if (col == sm.ncols() - 1) {
+			if (col == this->ncols() - 1) {
 				out<<std::endl;
 			} else {
-				out<<" ";
+				out<<"\t";
 			}
 		}
 	}
-	return out;
 }
 
 SparseMatrix::SparseMatrix(size_t cols_from, size_t cols_to, size_t rows_from, size_t rows_to) :
@@ -198,10 +206,10 @@ SparseMatrix::SparseMatrix(size_t cols_from, size_t cols_to, size_t rows_from, s
 
 
 SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
-	Matrix(vec.front().cols_from,
-	       vec.back().cols_to,
-	       vec.front().rows_from,
-	       vec.back().rows_to)
+	Matrix(vec.front().getCols_from(),
+	       vec.back().getCols_to(),
+	       vec.front().getRows_from(),
+	       vec.back().getRows_to())
 {
 
 	assert(std::is_sorted(vec.begin(), vec.end()));
@@ -211,17 +219,17 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 	if (vec.size() == 1) {
 		this->values = vec[0].values;
 	} else {
-		if (vec[0].cols_to == vec[1].cols_from) {
+		if (vec[0].getCols_to() == vec[1].getCols_from()) {
 			column_join = true;
 		}
-		if (vec[0].rows_to == vec[1].rows_from) {
+		if (vec[0].getRows_to() == vec[1].getRows_from()) {
 			row_join = true;
 		}
 		assert(column_join xor row_join);
 	}
 
 	if (column_join) {
-		values.resize(vec.back().rows_to - vec.front().rows_from);
+		values.resize(vec.back().getRows_to() - vec.front().getRows_from());
 		const size_t num_submatrices = vec.size();
 		for (const size_t i : boost::irange(0_z, num_submatrices)) {
 			const size_t nrows = vec.at(i).nrows();
@@ -240,8 +248,8 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 					if (wrzuc) {
 						this->values.at(row).push_back(
 							std::make_pair(para.first +
-								               vec.at(i).cols_from -
-								               vec.at(0).cols_from,
+								               vec.at(i).getCols_from() -
+								               vec.at(0).getCols_from(),
 							               para.second));
 					}
 				}
@@ -256,8 +264,4 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 				sm.values.end());
 		}
 	}
-	for (auto& a: this->values) {
-		std::cout<<a<<"\n";
-	}
-	std::cout<<this->cols_from<<" "<<this->cols_to<<" "<<this->rows_from<<" "<<this->rows_to<<"\n";
 }

@@ -15,57 +15,12 @@
 
 typedef void *sparse_type;
 
-class a {
-private:
-	std::vector<int> x;
-	friend class boost::serialization::access;
-	template<typename Archive>
-	void serialize(Archive &ar, const unsigned version) {
-		ar & x;
-	}
-public:
-	a(): x({0}) {}
-	a(int aliczba): x({aliczba, 102}) {}
-	int get() {
-		std::cout<<this->x[1];
-		return this->x[0];
-	}
-};
-
-class b: public a {
-//	int x;
-	friend class boost::serialization::access;
-	template<typename Archive>
-		void serialize(Archive &ar, const unsigned version) {
-		ar & boost::serialization::base_object<a>(*this);
-
-	}
-
-public:
-	b(int val): a(val) {}
-};
-
 bool test = true;
 
 int main(int argc, char *argv[]) {
 	if (test) {
 
-		SparseMatrix sm = SparseMatrix(std::cin);
-		boost::archive::text_oarchive ar(std::cout);
-		b baca = b(100);
-		b baca2 = b(105);
-		ar & sm;
-		//boost::archive::binary_iarchive ar2(std::cin);//, boost::archive::archive_flags::no_header);
-		//ar2 & baca2;
-		//std::cout<<baca2.get()<<std::endl;
-//		std::vector<int> v2;
-//		ar2 & v2;
-//		for (auto i = v2.begin(); i != v2.end(); ++i) {
-//			std::cout<<*i<<std::endl;
-//		}
-//		ar & sm;
 	}
-
 	if (test) {
 		return 0;
 	}

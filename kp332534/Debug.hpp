@@ -6,9 +6,13 @@
 #define KP332534PWIR_DEBUG_HPP
 
 #ifdef DEBUG
-bool debug = true;
+const bool debug = true;
 #else
 bool debug = false;
 #endif
+
+const int precision = 4;
+
+const bool fixed = true;
 
 #endif //KP332534PWIR_DEBUG_HPP
