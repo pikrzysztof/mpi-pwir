@@ -56,12 +56,11 @@ void DenseMatrix::mla(const Matrix &a, const Matrix &b)//, double getValOrZero)
 
 	for (size_t row : boost::irange(0_z, a.nrows())) {
 		for (size_t col : boost::irange(0_z, b.ncols())) {
-//			std::cout<<"jade po rzadku "<<row<<" i kolumnie "<<col<<"\n";
 			for (size_t i : boost::irange(0_z, a.ncols())) {
+				size_t wiersz_moj = row + a.getRows_from(),
+					moja_kolumna = col;
 				double tmp = b.getValOrZero(i + a.getCols_from(), col) * a.getValOrZero(row, i);
-//				std::cout<<" mla "<<row + a.getRows_from()<<" "<<col<<" += a["<<row<<", "<<i<<"] * b["<<i + a.getCols_from()
-//				<<", "<<col<<"] = "<<tmp<<"bo a = "<<a.getValOrZero(row, i)<<", b="<<b.getValOrZero(i + a.getCols_from(), col)<<"\n";
-				values[row + a.getRows_from()][col] += tmp;
+				values[wiersz_moj][col] += tmp;
 			}
 		}
 	}
