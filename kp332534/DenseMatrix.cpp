@@ -6,6 +6,7 @@
 #include "DenseMatrix.hpp"
 #include "densematgen.hpp"
 #include "Utils.hpp"
+#include <boost/range/irange.hpp>
 
 DenseMatrix::DenseMatrix(size_t cols_from,
                          size_t cols_to,
@@ -19,7 +20,7 @@ DenseMatrix::DenseMatrix(size_t cols_from,
 	}
 }
 
-void DenseMatrix::fillValues(int seed)
+DenseMatrix* DenseMatrix::fillValues(int seed)
 {
 	for (const size_t row : boost::irange(0_z, this->nrows())) {
 		for (const size_t col : boost::irange(0_z, this->ncols())) {
@@ -29,6 +30,7 @@ void DenseMatrix::fillValues(int seed)
 				                (int) (col + this->getCols_from()));
 		}
 	}
+	return this;
 }
 
 precision_type DenseMatrix::getValOrZero(size_t row_idx, size_t col_idx) const
@@ -36,7 +38,7 @@ precision_type DenseMatrix::getValOrZero(size_t row_idx, size_t col_idx) const
 	return this->values[row_idx][col_idx];
 }
 
-void DenseMatrix::fillWithZeros()
+DenseMatrix* DenseMatrix::fillWithZeros()
 {
 	for (const size_t row : boost::irange(0_z, this->nrows())) {
 		for (const size_t col : boost::irange(0_z, this->ncols())) {
@@ -44,6 +46,7 @@ void DenseMatrix::fillWithZeros()
 			this->values[row].push_back(0.0);
 		}
 	}
+	return this;
 }
 
 //this = A * B, A is sparse, B is dense
@@ -141,6 +144,21 @@ std::vector<DenseMatrix> DenseMatrix::colDivide(const size_t num_matrices) const
 	}
 	return result;
 }
+
+size_t DenseMatrix::countGreater(precision_type threshold)
+{
+	size_t result = 0;
+	for (std::vector<precision_type> &row : this->values) {
+		for (precision_type val : row) {
+			if (val >= threshold) {
+				result += 1;
+			}
+		}
+	}
+	return result;
+}
+
+
 
 
 

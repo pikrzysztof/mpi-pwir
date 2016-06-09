@@ -114,7 +114,6 @@ std::vector<SparseMatrix> SparseMatrix::rowDivide(size_t num_matrices) const
 std::vector<SparseMatrix> SparseMatrix::colDivide(size_t num_matrices) const
 {
 	size_t ncols_div = this->ncols() / num_matrices;
-	(void) ncols_div;
 	auto result = std::vector<SparseMatrix>();
 	result.reserve(num_matrices);
 	size_t extra_cols = this->ncols() % num_matrices,
@@ -180,7 +179,7 @@ void SparseMatrix::print(std::ostream& out) const
 	for (const size_t row : boost::irange(0_z, this->nrows())) {
 		for (const size_t col : boost::irange(0_z, this->ncols())) {
 			precision_type d = this->getValOrZero(row, col);
-			if (debug) {
+			if (DEBUG) {
 				if (d == 0.0) {
 					out << "......";
 				} else {
@@ -211,7 +210,9 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 	Matrix(vec.front().getCols_from(),
 	       vec.back().getCols_to(),
 	       vec.front().getRows_from(),
-	       vec.back().getRows_to())
+	       vec.back().getRows_to()),
+        last_row_check(0),
+        last_col_check(0)
 {
 
 	assert(std::is_sorted(vec.begin(), vec.end()));
@@ -268,7 +269,7 @@ SparseMatrix::SparseMatrix(std::vector<SparseMatrix> const& vec):
 	}
 }
 
-const std::vector<std::pair<size_t, precision_type>> &SparseMatrix::getRow(size_t rowId) const
+const std::vector<std::pair<size_t, precision_type>>& SparseMatrix::getRow(size_t rowId) const
 {
 	assert(rowId < this->nrows());
 	return this->values.at(rowId);

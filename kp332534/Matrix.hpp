@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <istream>
 #include <boost/serialization/access.hpp>
+
 #include <tuple>
 #include <ostream>
 #include "Debug.hpp"
@@ -16,14 +17,14 @@
 class Matrix {
 private:
 	friend class boost::serialization::access;
-
 	template<typename Archive>
-	void serialize(Archive &ar, const unsigned version);
+	void serialize(Archive &ar, const unsigned);
 	size_t cols_from, cols_to, rows_from, rows_to;
 protected:
 	virtual void print(std::ostream& out) const = 0;
 	Matrix(size_t cols_from, size_t cols_to,
 	       size_t rows_from, size_t rows_to);
+	Matrix() { }
 public:
 	size_t nrows() const;
 	size_t ncols() const;
@@ -41,13 +42,14 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& str, Matrix const& matrix)
 	{
-		str.precision(precision);
-		if (fixed) {
+		str.precision(PRECISION);
+		if (FIXED) {
 			str<<std::fixed;
 		}
 		matrix.print(str);
 		return str;
 	}
+	virtual ~Matrix() {};
 };
 
 template<typename Archive>

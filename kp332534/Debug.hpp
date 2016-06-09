@@ -5,16 +5,16 @@
 #ifndef KP332534PWIR_DEBUG_HPP
 #define KP332534PWIR_DEBUG_HPP
 
-#ifdef DEBUG
-const bool debug = true;
+#ifdef DBG
+const bool DEBUG = true;
 #else
-bool debug = false;
+const bool DEBUG = false;
 #endif
 
 typedef double precision_type;
 
-const int precision = 4;
+const int PRECISION = 4;
 
-const bool fixed = true;
+const bool FIXED = true;
 
 #endif //KP332534PWIR_DEBUG_HPP

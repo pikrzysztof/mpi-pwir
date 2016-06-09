@@ -1,62 +1,64 @@
 #include <cstdio>
+#include <string>
 #include <stdlib.h>
-#include <mpi.h>
-#include <cassert>
 #include <getopt.h>
+#include <mpi.h>
 
-#include "densematgen.hpp"
+#include <boost/mpi.hpp>
+
 #include "SparseMatrix.hpp"
-
+#include "DenseMatrix.hpp"
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
+#include <fstream>
+#include "Misc.hpp"
+#include "impl.hpp"
 
-typedef void *sparse_type;
+namespace bmpi = boost::mpi;
 
-bool test = true;
 
 int main(int argc, char *argv[]) {
-	if (test) {
-
-	}
-	if (test) {
-		return 0;
-	}
-	int show_results = 0;
-	int use_inner = 0;
+	bool show_results = false;
+	bool use_inner = false;
 	int gen_seed = -1;
 	int repl_fact = 1;
-
 	int option = -1;
 
-	precision_type comm_start = 0,
-		comm_end = 0, comp_start = 0, comp_end = 0;
+	double comm_time = 0, comp_time = 0;
 	int num_processes = 1;
 	int mpi_rank = 0;
 	int exponent = 1;
 	precision_type ge_element = 0;
-	int count_ge = 0;
+	bool count_ge = false;
 
-	sparse_type sparse = NULL;
+	SparseMatrix *sparse = nullptr;
 
-	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-
+	bmpi::environment mpienv(argc, argv, true);
+	bmpi::communicator world = bmpi::communicator();
+	num_processes = world.size();
+	mpi_rank = world.rank();
 	while ((option = getopt(argc, argv, "vis:f:c:e:g:")) != -1) {
 		switch (option) {
 			case 'v':
-				show_results = 1;
+				show_results = true;
 				break;
 			case 'i':
-				use_inner = 1;
+				use_inner = true;
 				break;
 			case 'f':
-				if ((mpi_rank) == 0) {
-					// FIXME: Process 0 should read the CSR sparse matrix here
-					sparse = NULL;
+				if ((mpi_rank) == MASTER) {
+					try {
+						std::ifstream in(optarg, std::ios_base::in);
+						if (in.good()) {
+							sparse = new SparseMatrix(in);
+						} else {
+							std::cerr<<"FILE "<<optarg<<" DOES NOT EXIST, EXITING\n";
+							world.abort(123);
+						}
+					} catch (...) {
+						std::cerr<<"ERROR PARSING FILE "<<optarg<<" EXITING\n";
+						world.abort(5);
+					}
 				}
 				break;
 			case 'c':
@@ -69,41 +71,87 @@ int main(int argc, char *argv[]) {
 				exponent = atoi(optarg);
 				break;
 			case 'g':
-				count_ge = 1;
+				count_ge = true;
 				ge_element = atof(optarg);
 				break;
 			default:
 				fprintf(stderr, "error parsing argument %c exiting\n", option);
-				MPI_Finalize();
 				return 3;
 		}
 	}
-	if ((gen_seed == -1) || ((mpi_rank == 0) && (sparse == NULL))) {
-		fprintf(stderr, "error: missing seed or sparse matrix file; exiting\n");
-		MPI_Finalize();
-		return 3;
+	if ((gen_seed == -1) || (mpi_rank == MASTER && sparse == nullptr)) {
+		std::cerr<<"error: missing seed or sparse matrix file; exiting\n";
+		world.abort(13);
 	}
 
+//genrate dense matrix B
 
-	comm_start = MPI_Wtime();
-	// FIXME: scatter sparse matrix; cache sparse matrix; cache dense matrix
-	MPI_Barrier(MPI_COMM_WORLD);
-	comm_end = MPI_Wtime();
+	bmpi::timer comm_timer = bmpi::timer();
+	DenseMatrix *matrixB(nullptr);
+	// scatter sparse matrix; cache sparse matrix; cache dense matrix
+	if (use_inner) {
+//		inner(world, mpi_rank, num_processes, sparse, matrixB, exponent, (size_t) repl_fact);
+		throw "Not implemented yet";
+	} else {
+//		GENERATING MATRIX B
+		int cols;
+		if (mpi_rank == MASTER) {
+			cols = (int) sparse->ncols();
+		}
+		bmpi::broadcast(world, cols, MASTER);
+		matrixB = generateDenseMatrix((size_t) mpi_rank, (size_t) num_processes, (size_t) cols, gen_seed);
 
-	comp_start = MPI_Wtime();
-	// FIXME: compute C = A ( A ... (AB ) )
-	MPI_Barrier(MPI_COMM_WORLD);
-	comp_end = MPI_Wtime();
+//		REDISTRIBUTING MATRIX A
+		SparseMatrix sm(redistributeSparseColumns(mpi_rank, num_processes, sparse, world));
+//		REPLICATING MATRIX A
+		bmpi::communicator replgroup(world.split(mpi_rank / repl_fact));
+		std::vector<SparseMatrix> repl_sms;
+		bmpi::all_gather(replgroup, sm, repl_sms);
+		sparse = new SparseMatrix(repl_sms);
+		repl_sms.clear();
+	}
+	world.barrier();
+	comm_time = comm_timer.elapsed();
+
+	bmpi::timer comp_start = bmpi::timer();
+	DenseMatrix* matC(nullptr);
+	// compute C = A ( A ... (AB ) )
+	{
+		bmpi::communicator horizontal(world.split(mpi_rank % repl_fact));
+		int horizontal_rank = horizontal.rank(),
+			horizontal_size = horizontal.size();
+		matC = colMultiply(exponent, sparse, matrixB, horizontal, horizontal_rank, horizontal_size);
+	}
+	world.barrier();
+	comp_time = comp_start.elapsed();
+	size_t greater_result = 0;
+	if (count_ge) {
+		// replace the following line: count ge elements
+		size_t greater = matC->countGreater(ge_element);
+		if (use_inner) {
+			throw "NOT IMPLEMENTED YET";
+		} else {
+			bmpi::reduce(world, greater, greater_result, std::plus<size_t>(), MASTER);
+		}
+	}
 
 	if (show_results) {
-		// FIXME: replace the following line: print the whole result matrix
-		printf("1 1\n42\n");
+		std::vector<DenseMatrix> c_joined;
+		bmpi::gather(world, *matC, c_joined, MASTER);
+		delete matC;
+		if (mpi_rank == MASTER) {
+			assert((int) c_joined.size() == num_processes);
+
+			matC = new DenseMatrix(c_joined);
+			std::cout<<*matC;
+			delete matC;
+		}
 	}
 	if (count_ge) {
-		// FIXME: replace the following line: count ge elements
-		printf("54\n");
+		if (mpi_rank == MASTER) {
+			std::cout << greater_result << "\n";
+		}
 	}
 
-	MPI_Finalize();
 	return 0;
 }
